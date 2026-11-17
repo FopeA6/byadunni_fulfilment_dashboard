@@ -1,0 +1,40 @@
+// Example tailnet policy for the fulfilment dashboard.
+//
+// Paste the relevant parts into your tailnet policy file in the Tailscale admin console.
+// Check the current syntax in Tailscale's docs before saving: this is a starting point, not a drop-in file.
+//
+// Two layers decide access:
+//   1. This policy decides WHO can reach the dashboard machine at all, and on which port.
+//   2. The app decides WHAT each person sees, using the identity Tailscale Serve passes to it (roles.json).
+{
+  // People, grouped by what they do for the shop.
+  "groups": {
+    "group:owners": ["owner@example.com"],
+    "group:fulfilment": ["fulfilment@example.com"]
+  },
+
+  // Only owners can put the "dashboard" tag on a machine, so nobody else can pretend to be it.
+  "tagOwners": {
+    "tag:adunni-dashboard": ["group:owners"]
+  },
+
+  "grants": [
+    // Owners and the fulfilment partner can reach the dashboard over HTTPS (port 443, where Tailscale Serve listens).
+    // Nothing else on that machine is reachable to them.
+    {
+      "src": ["group:owners", "group:fulfilment"],
+      "dst": ["tag:adunni-dashboard"],
+      "ip": ["443"]
+    },
+
+    // Owners can still reach the rest of their own devices.
+    {
+      "src": ["group:owners"],
+      "dst": ["autogroup:self"],
+      "ip": ["*"]
+    }
+  ]
+
+  // Remember to remove the default "allow everything" rule from your policy,
+  // otherwise these grants add nothing.
+}
